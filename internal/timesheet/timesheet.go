@@ -2,6 +2,7 @@ package timesheet
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/blakek/get-time-cli/internal/options"
@@ -9,11 +10,11 @@ import (
 
 func Create(startHour uint, endHour uint, options *options.Options) string {
 	if startHour > 23 || endHour > 23 {
-		panic("start and end times must be a valid hour number")
+		log.Fatal("start and end times must be a valid hour number")
 	}
 
 	if endHour <= startHour {
-		panic("end time must be greater than start time")
+		log.Fatal("end time must be greater than start time")
 	}
 
 	var template strings.Builder
