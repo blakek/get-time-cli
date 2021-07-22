@@ -8,11 +8,9 @@ import (
 )
 
 func main() {
-	options := &options.Options{
-		Granularity: 4,
-	}
+	opts := options.FetchOptions()
+	filePath := options.TimesheetPath("2021-01-28.md", opts)
+	times := timesheet.ParseFile(filePath, opts)
 
-	template := timesheet.Create(7, 15, options)
-
-	fmt.Println(template)
+	fmt.Println(times)
 }
