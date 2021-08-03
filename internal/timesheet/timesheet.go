@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/blakek/get-time-cli/internal/options"
 )
 
 type TimeEntry struct {
-	Name string
-	Time float32
+	Name       string
+	noteNumber string
+	Notes      string
+	Time       float32
 }
 
 func Create(startHour uint, endHour uint, options *options.Options) string {
@@ -52,31 +55,61 @@ func Create(startHour uint, endHour uint, options *options.Options) string {
 	return template.String()
 }
 
-func ParseFile(filePath string, options *options.Options) []TimeEntry {
+func ParseFile(filePath string, options *options.Options) []*TimeEntry {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 
-	timeEntries := []TimeEntry{}
 	scanner := bufio.NewScanner(file)
+	noteNumberRegex := regexp.MustCompile(`\[\^(\d+)\](?::\s*(.*))?`)
+	skipEntryRegex := regexp.MustCompile(`^\s*(?: -+|Name)\s*$`)
+
+	timeEntries := []*TimeEntry{}
+	hasNotes := false
+	hasTimeEntries := false
 
 	for scanner.Scan() {
-		timeEntry := TimeEntry{}
-
 		line := scanner.Text()
 		lineParts := strings.SplitN(line, "|", 3)
+		timeEntry := TimeEntry{}
 
-		if len(lineParts) != 3 {
+		isTimeEntryLine := len(lineParts) == 3 && !skipEntryRegex.MatchString(lineParts[1])
+		noteNumberMatches := noteNumberRegex.FindStringSubmatch(line)
+		hasNoteNumber := len(noteNumberMatches) > 0
+		isNoteLine := !isTimeEntryLine && len(noteNumberMatches) > 2
+
+		// Add note text to matching entry
+		if isNoteLine {
+			noteNumber := noteNumberMatches[1]
+			noteText := noteNumberMatches[2]
+
+			for _, entry := range timeEntries {
+				if entry.noteNumber == noteNumber {
+					entry.Notes = noteText
+					break
+				}
+			}
+		}
+
+		if !isTimeEntryLine {
+			// Stop reading the file if all time entries and notes have been read
+			if hasNotes && hasTimeEntries {
+				return timeEntries
+			}
+
 			continue
 		}
 
-		fmt.Printf("%v\n", lineParts)
-
 		timeEntry.Name = strings.TrimSpace(lineParts[1])
 		timeEntry.Time = float32(strings.Count(lineParts[2], "x")) / float32(options.Granularity)
-		timeEntries = append(timeEntries, timeEntry)
+
+		if hasNoteNumber {
+			timeEntry.noteNumber = noteNumberMatches[1]
+		}
+
+		timeEntries = append(timeEntries, &timeEntry)
 	}
 
 	if err := scanner.Err(); err != nil {

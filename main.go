@@ -12,5 +12,7 @@ func main() {
 	filePath := options.TimesheetPath("2021-01-28.md", opts)
 	times := timesheet.ParseFile(filePath, opts)
 
-	fmt.Println(times)
+	for _, entry := range times {
+		fmt.Println(entry)
+	}
 }
