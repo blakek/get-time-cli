@@ -118,3 +118,13 @@ func ParseFile(filePath string, options *options.Options) []*TimeEntry {
 
 	return timeEntries
 }
+
+func GetHoursWorked(times []*TimeEntry) float32 {
+	var hoursWorked float32 = 0
+
+	for _, timeEntry := range times {
+		hoursWorked += timeEntry.Time
+	}
+
+	return hoursWorked
+}
