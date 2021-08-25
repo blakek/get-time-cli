@@ -7,18 +7,27 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/blakek/get-time-cli/internal/options"
 )
 
-type TimeEntry struct {
+type TimesheetEntry struct {
 	Name       string
 	noteNumber string
 	Notes      string
 	Time       float32
 }
 
-func Create(startHour uint, endHour uint, options *options.Options) string {
+type Timesheet struct {
+	Entries        []*TimesheetEntry
+	CompletionTime time.Time
+	IsCompleted    bool
+	TimeRemaining  time.Duration
+	TimeWorked     time.Duration
+}
+
+func CreateFile(startHour uint, endHour uint, options *options.Options) string {
 	if startHour > 23 || endHour > 23 {
 		log.Fatal("start and end times must be a valid hour number")
 	}
@@ -55,7 +64,7 @@ func Create(startHour uint, endHour uint, options *options.Options) string {
 	return template.String()
 }
 
-func ParseFile(filePath string, options *options.Options) []*TimeEntry {
+func ParseFile(filePath string, options *options.Options) *Timesheet {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
@@ -66,14 +75,14 @@ func ParseFile(filePath string, options *options.Options) []*TimeEntry {
 	noteNumberRegex := regexp.MustCompile(`\[\^(\d+)\](?::\s*(.*))?`)
 	skipEntryRegex := regexp.MustCompile(`^\s*(?: -+|Name)\s*$`)
 
-	timeEntries := []*TimeEntry{}
+	timeEntries := []*TimesheetEntry{}
 	hasNotes := false
 	hasTimeEntries := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		lineParts := strings.SplitN(line, "|", 3)
-		timeEntry := TimeEntry{}
+		timeEntry := TimesheetEntry{}
 
 		isTimeEntryLine := len(lineParts) == 3 && !skipEntryRegex.MatchString(lineParts[1])
 		noteNumberMatches := noteNumberRegex.FindStringSubmatch(line)
@@ -96,7 +105,7 @@ func ParseFile(filePath string, options *options.Options) []*TimeEntry {
 		if !isTimeEntryLine {
 			// Stop reading the file if all time entries and notes have been read
 			if hasNotes && hasTimeEntries {
-				return timeEntries
+				return getTimesheetFromEntries(timeEntries, options)
 			}
 
 			continue
@@ -116,15 +125,52 @@ func ParseFile(filePath string, options *options.Options) []*TimeEntry {
 		log.Fatal(err)
 	}
 
-	return timeEntries
+	return getTimesheetFromEntries(timeEntries, options)
 }
 
-func GetHoursWorked(times []*TimeEntry) float32 {
+func GetCompletionTime(timeRemaining time.Duration, options *options.Options) time.Time {
+	granularity := time.Hour / time.Duration(options.Granularity)
+	return time.Now().Add(timeRemaining).Round(granularity)
+}
+
+func GetTimeRemaining(timeWorked time.Duration, options *options.Options) time.Duration {
+	hoursPerDay := getDurationFromHours(options.HoursPerDay)
+	timeRemaining := hoursPerDay - timeWorked
+
+	if timeRemaining > 0 {
+		return timeRemaining
+	}
+
+	return 0
+}
+
+func GetTimeWorked(times []*TimesheetEntry) time.Duration {
 	var hoursWorked float32 = 0
 
 	for _, timeEntry := range times {
 		hoursWorked += timeEntry.Time
 	}
 
-	return hoursWorked
+	return getDurationFromHours(hoursWorked)
+}
+
+// This is a utility to convert a float of hours to a `time.Duration`.
+// `time.Duration` doesn't accept floats, so the duration needs to be converted
+// to minutes instead of fractions of hours
+func getDurationFromHours(hours float32) time.Duration {
+	return time.Duration(hours*60) * time.Minute
+}
+
+func getTimesheetFromEntries(entries []*TimesheetEntry, options *options.Options) *Timesheet {
+	timeWorked := GetTimeWorked(entries)
+	timeRemaining := GetTimeRemaining(timeWorked, options)
+	completionTime := GetCompletionTime(timeRemaining, options)
+
+	return &Timesheet{
+		CompletionTime: completionTime,
+		Entries:        entries,
+		IsCompleted:    timeRemaining > 0,
+		TimeWorked:     timeWorked,
+		TimeRemaining:  timeRemaining,
+	}
 }
