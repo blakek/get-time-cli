@@ -6,6 +6,8 @@ type Options struct {
 	// How many sections to break each hour into. Default is 4 for 15 minutes
 	// (i.e. 60 / 15).
 	Granularity int
+	// How many hours are worked per day (for estimating ending time)
+	HoursPerDay float32
 	// Location where timesheets are stored
 	TimesheetDirectory string
 }
@@ -17,6 +19,7 @@ func TimesheetPath(timesheetName string, options *Options) string {
 func FetchOptions() *Options {
 	defaultOptions := &Options{
 		Granularity:        4,
+		HoursPerDay:        8,
 		TimesheetDirectory: "times-test",
 	}
 
