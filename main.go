@@ -12,7 +12,7 @@ func printLongSummary(timesheet *timesheet.Timesheet, options *options.Options) 
 	fmt.Printf("Current:   %0.2f\n", timesheet.TimeWorked.Hours())
 	fmt.Printf("Remaining: %0.2f", timesheet.TimeRemaining.Hours())
 
-	if timesheet.IsCompleted {
+	if !timesheet.IsCompleted {
 		fmt.Printf(" (%v)", timesheet.CompletionTime.Format(time.Kitchen))
 	}
 
@@ -22,7 +22,7 @@ func printLongSummary(timesheet *timesheet.Timesheet, options *options.Options) 
 func printShortSummary(timesheet *timesheet.Timesheet, options *options.Options) {
 	fmt.Printf("%0.2f hr", timesheet.TimeWorked.Hours())
 
-	if timesheet.IsCompleted {
+	if !timesheet.IsCompleted {
 		fmt.Printf(" (@%v)", timesheet.CompletionTime.Format(time.Kitchen))
 	}
 

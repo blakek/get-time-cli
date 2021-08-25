@@ -169,7 +169,7 @@ func getTimesheetFromEntries(entries []*TimesheetEntry, options *options.Options
 	return &Timesheet{
 		CompletionTime: completionTime,
 		Entries:        entries,
-		IsCompleted:    timeRemaining > 0,
+		IsCompleted:    timeRemaining <= 0,
 		TimeWorked:     timeWorked,
 		TimeRemaining:  timeRemaining,
 	}
