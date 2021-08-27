@@ -2,28 +2,33 @@ package summary
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/blakek/get-time-cli/internal/options"
 	"github.com/blakek/get-time-cli/internal/timesheet"
+	"golang.org/x/term"
 )
+
+var maxOutputWidth = getOutputWidth()
 
 func PrintLongSummary(timesheet *timesheet.Timesheet, options *options.Options) {
 	const (
-		maxNoteLength = 64
+		maxNameWidth = 32
+		maxTimeWidth = 6
 	)
 
+	separatorLength := getSeparatorLength(timesheet, maxNameWidth)
+	maxNoteLength := maxOutputWidth - maxTimeWidth - separatorLength
+
 	fmt.Printf("Current:   %0.2f\n", timesheet.TimeWorked.Hours())
-	fmt.Printf("Remaining: %0.2f", timesheet.TimeRemaining.Hours())
 
 	if !timesheet.IsCompleted {
+		fmt.Printf("Remaining: %0.2f", timesheet.TimeRemaining.Hours())
 		fmt.Printf(" (%v)", timesheet.CompletionTime.Format(time.Kitchen))
+		fmt.Printf("\n")
 	}
-
-	fmt.Printf("\n")
-
-	separatorLength := getSeparatorLength(timesheet)
 
 	if len(timesheet.Entries) > 0 {
 		fmt.Printf("\n")
@@ -36,8 +41,9 @@ func PrintLongSummary(timesheet *timesheet.Timesheet, options *options.Options) 
 		// Ensure text fits in max area
 		if len(entry.Notes) > 0 {
 			noteText = "# " + entry.Notes
-			if len(noteText) > maxNoteLength {
-				noteText = noteText[0:maxNoteLength-1] + "…"
+			additionalLength := 4
+			if len(noteText)+additionalLength > maxNoteLength {
+				noteText = noteText[0:maxNoteLength-additionalLength+1] + "…"
 			}
 		}
 
@@ -55,10 +61,28 @@ func PrintShortSummary(timesheet *timesheet.Timesheet, options *options.Options)
 	fmt.Printf("\n")
 }
 
-func getSeparatorLength(timesheet *timesheet.Timesheet) int {
+func getOutputWidth() int {
 	const (
-		maxLength = 64
-		padding   = 2
+		maximumWidth = 320
+		minimumWidth = 16
+	)
+
+	stdoutFd := int(os.Stdout.Fd())
+
+	if term.IsTerminal(stdoutFd) {
+		width, _, _ := term.GetSize(stdoutFd)
+
+		if width > minimumWidth {
+			return width
+		}
+	}
+
+	return maximumWidth
+}
+
+func getSeparatorLength(timesheet *timesheet.Timesheet, maxLength int) int {
+	const (
+		padding = 2
 	)
 
 	length := 10
