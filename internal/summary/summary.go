@@ -64,7 +64,7 @@ func PrintShortSummary(timesheet *timesheet.Timesheet, options *options.Options)
 func getOutputWidth() int {
 	const (
 		maximumWidth = 320
-		minimumWidth = 16
+		minimumWidth = 32
 	)
 
 	stdoutFd := int(os.Stdout.Fd())
@@ -72,7 +72,7 @@ func getOutputWidth() int {
 	if term.IsTerminal(stdoutFd) {
 		width, _, _ := term.GetSize(stdoutFd)
 
-		if width > minimumWidth {
+		if width >= minimumWidth {
 			return width
 		}
 	}
