@@ -2,6 +2,7 @@ package summary
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -50,6 +51,23 @@ func PrintShortSummary(timesheet *timesheet.Timesheet, options *options.Options)
 
 	if !timesheet.IsCompleted {
 		fmt.Printf(" (@%v)", timesheet.CompletionTime.Format(time.Kitchen))
+	}
+
+	fmt.Printf("\n")
+}
+
+func PrintUnicodeArtSummary(timesheet *timesheet.Timesheet, options *options.Options) {
+	symbols := []string{"⣿", "⣷", "⣶", "⣦", "⣤", "⣄", "⣀", "⡀"}
+
+	symbolIndex := int(math.Min(
+		float64(len(symbols)-1),
+		math.Max(0, math.Round(float64(timesheet.TimeRemaining.Hours()))),
+	))
+
+	fmt.Print(symbols[symbolIndex])
+
+	if !timesheet.IsCompleted {
+		fmt.Printf(" (%v)", timesheet.CompletionTime.Format(time.Kitchen))
 	}
 
 	fmt.Printf("\n")
