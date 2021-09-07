@@ -116,6 +116,7 @@ func ParseFile(filePath string, options *options.Options) *Timesheet {
 
 		if hasNoteNumber {
 			timeEntry.noteNumber = noteNumberMatches[1]
+			timeEntry.Name = strings.TrimSuffix(timeEntry.Name, " [^"+timeEntry.noteNumber+"]")
 		}
 
 		timeEntries = append(timeEntries, &timeEntry)
