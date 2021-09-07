@@ -3,31 +3,29 @@ package summary
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
+	"github.com/DataDrake/flair"
 	"github.com/blakek/get-time-cli/internal/options"
 	"github.com/blakek/get-time-cli/internal/timesheet"
 	"golang.org/x/term"
 )
 
-var maxOutputWidth = getOutputWidth()
+var (
+	stdoutFd   = int(os.Stdout.Fd())
+	isTerminal = term.IsTerminal(stdoutFd)
+)
 
 func PrintLongSummary(timesheet *timesheet.Timesheet, options *options.Options) {
-	const (
-		maxNameWidth = 32
-		maxTimeWidth = 6
-	)
 
-	separatorLength := getSeparatorLength(timesheet, maxNameWidth)
-	maxNoteLength := maxOutputWidth - maxTimeWidth - separatorLength
-
-	fmt.Printf("Current:   %0.2f\n", timesheet.TimeWorked.Hours())
+	fmt.Printf("%0.2f hours worked\n", timesheet.TimeWorked.Hours())
 
 	if !timesheet.IsCompleted {
-		fmt.Printf("Remaining: %0.2f", timesheet.TimeRemaining.Hours())
-		fmt.Printf(" (%v)", timesheet.CompletionTime.Format(time.Kitchen))
-		fmt.Printf("\n")
+		fmt.Printf(
+			"Done at %v (%0.2f remaining)\n",
+			timesheet.CompletionTime.Format(time.Kitchen),
+			timesheet.TimeRemaining.Hours(),
+		)
 	}
 
 	if len(timesheet.Entries) > 0 {
@@ -35,19 +33,15 @@ func PrintLongSummary(timesheet *timesheet.Timesheet, options *options.Options) 
 	}
 
 	for _, entry := range timesheet.Entries {
-		var noteText string
-		separator := strings.Repeat(".", separatorLength-len(entry.Name))
+		sectionTitle := fmt.Sprintf("%s: %.2f", entry.Name, entry.Time)
 
-		// Ensure text fits in max area
-		if len(entry.Notes) > 0 {
-			noteText = "# " + entry.Notes
-			additionalLength := 4
-			if len(noteText)+additionalLength > maxNoteLength {
-				noteText = noteText[0:maxNoteLength-additionalLength+1] + "…"
-			}
+		fmt.Printf("%s\n", formatTitleText(sectionTitle))
+
+		if entry.Notes != "" {
+			fmt.Print(formatNoteText(entry.Notes))
 		}
 
-		fmt.Printf("- %s%s%.2f  %s\n", entry.Name, separator, entry.Time, noteText)
+		fmt.Println()
 	}
 }
 
@@ -61,39 +55,18 @@ func PrintShortSummary(timesheet *timesheet.Timesheet, options *options.Options)
 	fmt.Printf("\n")
 }
 
-func getOutputWidth() int {
-	const (
-		maximumWidth = 320
-		minimumWidth = 32
-	)
-
-	stdoutFd := int(os.Stdout.Fd())
-
-	if term.IsTerminal(stdoutFd) {
-		width, _, _ := term.GetSize(stdoutFd)
-
-		if width >= minimumWidth {
-			return width
-		}
-	}
-
-	return maximumWidth
+func formatNoteText(noteText string) string {
+	return fmt.Sprintf("    %s\n", maybeFormatText(noteText, flair.Dim))
 }
 
-func getSeparatorLength(timesheet *timesheet.Timesheet, maxLength int) int {
-	const (
-		padding = 2
-	)
+func formatTitleText(title string) string {
+	return maybeFormatText(title, flair.Bold)
+}
 
-	length := 10
-
-	for _, entry := range timesheet.Entries {
-		nameLength := len(entry.Name)
-
-		if nameLength > length-padding && nameLength < maxLength {
-			length = nameLength + padding
-		}
+func maybeFormatText(text string, formatFunc func(string) string) string {
+	if isTerminal {
+		return formatFunc(text)
 	}
 
-	return length
+	return text
 }
