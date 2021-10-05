@@ -97,7 +97,6 @@ func ParseFile(filePath string, options *options.Options) *Timesheet {
 			for _, entry := range timeEntries {
 				if entry.noteNumber == noteNumber {
 					entry.Notes = noteText
-					break
 				}
 			}
 		}
