@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -27,7 +28,7 @@ type Timesheet struct {
 	TimeWorked     time.Duration
 }
 
-func CreateFile(startHour uint, endHour uint, options *options.Options) string {
+func Create(startHour uint, endHour uint, options *options.Options) string {
 	if startHour > 23 || endHour > 23 {
 		log.Fatal("start and end times must be a valid hour number")
 	}
@@ -131,6 +132,17 @@ func ParseFile(filePath string, options *options.Options) *Timesheet {
 func GetCompletionTime(timeRemaining time.Duration, options *options.Options) time.Time {
 	granularity := time.Hour / time.Duration(options.Granularity)
 	return time.Now().Add(timeRemaining).Round(granularity)
+}
+
+func GetPath(timesheetName string, options *options.Options) string {
+	return path.Join(options.TimesheetDirectory, timesheetName)
+}
+
+func GetPathForDate(date time.Time, options *options.Options) string {
+	return GetPath(
+		date.Format(options.TimesheetNameFormat),
+		options,
+	)
 }
 
 func GetTimeRemaining(timeWorked time.Duration, options *options.Options) time.Duration {

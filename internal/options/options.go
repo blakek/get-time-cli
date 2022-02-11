@@ -3,7 +3,6 @@ package options
 import (
 	"os"
 	"path"
-	"time"
 )
 
 type Options struct {
@@ -18,17 +17,6 @@ type Options struct {
 	TimesheetNameFormat string
 }
 
-func TimesheetPath(timesheetName string, options *Options) string {
-	return path.Join(options.TimesheetDirectory, timesheetName)
-}
-
-func TimesheetPathForDate(date time.Time, options *Options) string {
-	return TimesheetPath(
-		date.Format(options.TimesheetNameFormat),
-		options,
-	)
-}
-
 func FetchOptions() *Options {
 	configDir := ensureConfigDir()
 
@@ -36,7 +24,7 @@ func FetchOptions() *Options {
 		Granularity:         4,
 		HoursPerDay:         8,
 		TimesheetDirectory:  configDir,
-		TimesheetNameFormat: "2006-01-02",
+		TimesheetNameFormat: "2006-01-02.md",
 	}
 
 	return defaultOptions

@@ -12,6 +12,12 @@ import (
 	"golang.org/x/term"
 )
 
+const (
+	LongSummary    string = "long"
+	ShortSummary   string = "short"
+	UnicodeSummary string = "unicode"
+)
+
 var (
 	stdoutFd   = int(os.Stdout.Fd())
 	isTerminal = term.IsTerminal(stdoutFd)
@@ -71,6 +77,24 @@ func PrintUnicodeArtSummary(timesheet *timesheet.Timesheet, options *options.Opt
 	}
 
 	fmt.Printf("\n")
+}
+
+func PrintSummary(summaryType string, timesheet *timesheet.Timesheet, options *options.Options) error {
+	switch summaryType {
+	case LongSummary:
+		PrintLongSummary(timesheet, options)
+
+	case ShortSummary:
+		PrintShortSummary(timesheet, options)
+
+	case UnicodeSummary:
+		PrintUnicodeArtSummary(timesheet, options)
+
+	default:
+		return fmt.Errorf("summary: unknown summary type \"%s\"", summaryType)
+	}
+
+	return nil
 }
 
 func formatNoteText(noteText string) string {
